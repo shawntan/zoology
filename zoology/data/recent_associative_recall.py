@@ -293,15 +293,16 @@ def _mqar(
     value_choices = np.arange(key_vocab_size, vocab_size)
 
     keys_unshuffled = np.tile(key_choices, (num_examples, 1))
-    keys = np.apply_along_axis(np.random.choice, 1, keys_unshuffled, replace=False, size=num_kv_pairs)
+    keys = np.apply_along_axis(np.random.choice, 1, keys_unshuffled, replace=True, size=num_kv_pairs)
 
     values_unshuffled = np.tile(value_choices, (num_examples, 1))
-    values = np.apply_along_axis(np.random.choice, 1, values_unshuffled, replace=False, size=num_kv_pairs)
-
+    values = np.apply_along_axis(np.random.choice, 1, values_unshuffled, replace=True, size=num_kv_pairs)
     # create sequences
     kvs = np.zeros((num_examples, context_size), dtype=np.int64)
     kvs[:, 0::2] = keys
     kvs[:, 1::2] = values
+    print(keys)
+    print(values)
 
     # compute power law
     space = (input_seq_len - context_size) // 2
@@ -309,24 +310,35 @@ def _mqar(
     p = p / p.sum()
 
     x = np.stack([np.arange(space, dtype=int)] * num_examples)
-    gaps = np.apply_along_axis(np.random.choice, axis=1, arr=x, replace=False, p=p, size=num_kv_pairs)
-
+    gaps = np.apply_along_axis(np.random.choice, axis=1, arr=x, replace=True, p=p, size=num_kv_pairs)
     # queries and answers
     queries = np.zeros((num_examples, input_seq_len - context_size + 1), dtype=np.int64)
     np.put_along_axis(queries, (gaps * 2), values=keys, axis=1)
-    examples = np.concatenate([
-        kvs, 
-        queries
-    ], axis=1)
-
-    labels = np.full((num_examples, input_seq_len + 1), -100, dtype=np.int64)
-    np.put_along_axis(labels, (gaps * 2) + context_size + 1, values=values, axis=1)
-
-    inputs, labels = torch.tensor(examples[:, :-1]), torch.tensor(labels[:, 1:])
-    
-    # replace all the 0 with random values
+    examples = np.concatenate([kvs, queries], axis=1)
+    inputs = torch.tensor(examples[:, :-1])
     if random_non_queries:
-        inputs[inputs == 0] = torch.randint(vocab_size, size=inputs.shape)[inputs == 0]
+        inputs[inputs == 0] = torch.tensor(
+            np.random.choice(value_choices, replace=True, size=inputs.shape)[inputs == 0])
+
+    def process_sequence(seq):
+        out = np.full((seq.shape[0],), -100, dtype=np.int64)
+        state = {}
+        curr_key = None
+        for i in range(seq.shape[0]):
+            if seq[i] in key_choices:
+                curr_key = seq[i]
+                if curr_key in state:
+                    out[i] = state[curr_key]
+            elif curr_key is not None:
+                state[curr_key] = seq[i]
+                curr_key = None
+        return out
+    labels = torch.tensor(
+        np.apply_along_axis(process_sequence, axis=1, arr=inputs))
+    # labels = np.full((num_examples, input_seq_len + 1), -100, dtype=np.int64)
+    # labels = np.put_along_axis(labels, (gaps * 2) + context_size + 1, values=values, axis=1)
+    # inputs, labels = torch.tensor(examples[:, :-1]), torch.tensor(labels[:, 1:])
+    # replace all the 0 with random values
     return inputs, labels
 
 
@@ -366,15 +378,15 @@ def base_ar(
 
 if __name__ == "__main__":
     mqar_data = multiquery_ar(
-        vocab_size=32,
-        num_train_examples=1,
-        num_test_examples=1,
-        input_seq_len=16,
+        # vocab_size=64,
+        # num_train_examples=1,
+        # num_test_examples=1,
+        # input_seq_len=32,
         num_kv_pairs=4,
         train_power_a=0.01,
         test_power_a=0.01,
         random_non_queries=True,
         seed=0,
     )
-    print("Train:", mqar_data.train_inputs)
-    print("Test: ", mqar_data.train_labels)
+    print("Input:", mqar_data.train_inputs)
+    print("Label: ", mqar_data.train_labels)
