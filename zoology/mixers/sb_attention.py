@@ -80,13 +80,17 @@ class SelfAttention(nn.Module):
         """
         seqlen = qkv.shape[1]
         q, k, v = qkv.unbind(dim=2)
-        softmax_scale = 1.0 / math.sqrt(q.shape[-1])
-        scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
+        softmax_scale = 1.5 / math.sqrt(q.shape[-1])
+        scores = torch.einsum("bthd,bshd->bhts", q, k)
+        scores *= softmax_scale
         cumweight = torch.ones(seqlen, seqlen).tril(-1).to(q)
         mask = torch.ones(seqlen, seqlen).triu(0).cuda().bool()
         attention = StickbreakingFromLogits.apply(scores, mask, cumweight)
+        rem = 1 - attention.sum(-1)
         attention_drop = F.dropout(attention, self.dropout_p if self.training else 0.0)
         output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
+        rem = rem.permute(0, 2, 1)
+        output = output.add_(rem[..., None] * v)
         return output
 
 
