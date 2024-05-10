@@ -26,7 +26,7 @@ Zoology provides machine learning researchers with a simple playground for under
 ```bash
 git clone https://github.com/HazyResearch/zoology.git
 cd zoology
-pip install -e .[extra,analysis] 
+pip install -e .[extra,analysis]
 ```
 If you want to keep this install as lightweight as possible; the only required dependencies are: `torch, einops, tqdm, pydantic, wandb`. There is some extra functionality (*e.g.* launching sweeps in parallel with Ray) that require additional dependencies. To install without the optional dependencies, run `pip install -e .`.
 
