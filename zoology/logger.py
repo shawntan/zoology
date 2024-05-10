@@ -12,6 +12,7 @@ class WandbLogger:
             self.no_logger = True
             return
         self.no_logger = False
+        print("WandB logger")
         self.run = wandb.init(
             name=config.run_id,
             entity=config.logger.entity,
@@ -36,7 +37,7 @@ class WandbLogger:
         if self.no_logger:
             return
         wandb.log(metrics)
-    
+
     def finish(self):
         if self.no_logger:
             return

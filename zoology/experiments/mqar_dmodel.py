@@ -32,7 +32,7 @@ for input_seq_len, num_kv_pairs in [
         vocab_size=VOCAB_SIZE,
         input_seq_len=input_seq_len,
         batch_size=batch_size,
-        cache_dir="/var/cr05_data/sabri_data/zg-synthetics",
+        cache_dir="/workspace/shawntan/out/zoology_baselines",
         builder={
             "name": "zoology.data.associative_recall.multiquery_ar",
             "kwargs": {
@@ -41,7 +41,7 @@ for input_seq_len, num_kv_pairs in [
                 "test_power_a": 0.01,
                 "random_non_queries": False
             }
-        }   
+        }
     )
 
     for d_model in [
@@ -51,10 +51,16 @@ for input_seq_len, num_kv_pairs in [
         512
     ]:
         for lr in  np.logspace(-4, -2, 4):
-            
             MIXERS = {
                 "attention": dict(
                     name="zoology.mixers.attention.MHA",
+                    kwargs={
+                        "dropout": 0.1,
+                        "num_heads": 1
+                    },
+                ),
+                "sb_attention": dict(
+                    name="zoology.mixers.sb_attention.MHA",
                     kwargs={
                         "dropout": 0.1,
                         "num_heads": 1
@@ -136,14 +142,15 @@ for input_seq_len, num_kv_pairs in [
             }
 
             for sequence_mixer in [
-                # "attention",
+                "sb_attention",
+                "attention",
                 # "hyena",
                 # "rwkv",
                 # "base_conv"
                 # "base_conv_explicit",
                 # "h3"
                 # "base_conv_explicit"
-                "based",
+                # "based",
                 # "mamba"
             ]:
 
@@ -169,7 +176,7 @@ for input_seq_len, num_kv_pairs in [
                     run_id=f"{sequence_mixer}-seqlen{input_seq_len}-dmodel{d_model}-lr{lr}-kv{num_kv_pairs}",
                     logger=LoggerConfig(
                         project_name="zoology",
-                        entity="hazy-research"
+                        entity="shawntan"
                     )
 
                 )

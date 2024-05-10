@@ -164,7 +164,6 @@ def compute_accuracy(
 def train(config: TrainConfig):
     # TODO (SE): need to actaully verify reproducibility here
     set_determinism(config.seed)
-    
     logger = WandbLogger(config)
     logger.log_config(config)
     config.print()
