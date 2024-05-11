@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from einops import rearrange
 import math
 
-
 class SelfAttention(nn.Module):
     def __init__(self, attention_dropout=0.0):
         super().__init__()
@@ -30,11 +29,9 @@ class SelfAttention(nn.Module):
         output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
         return output
 
-
 class MHA(nn.Module):
     """Multi-head self-attention
     """
-
     def __init__(
         self,
         d_model: int,
