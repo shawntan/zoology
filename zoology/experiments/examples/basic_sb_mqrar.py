@@ -1,13 +1,14 @@
 from zoology.config import TrainConfig, ModelConfig, DataConfig, FunctionConfig, ModuleConfig
 
-
+input_seq_len = 512
+num_kv_pairs = 128
 
 config = TrainConfig(
     data=DataConfig(
         num_train_examples=100_000,
         num_test_examples=3_000,
         vocab_size=8192,
-        input_seq_len=256,
+        input_seq_len=input_seq_len,
         batch_size=256,
         # cache_dir="/path/to/cache/dir"  TODO: add this
         # vocab_size=256,
@@ -22,12 +23,12 @@ config = TrainConfig(
     ),
     model=ModelConfig(
         vocab_size=8192,
-        max_position_embeddings=256,
+        max_position_embeddings=input_seq_len,
         sequence_mixer=ModuleConfig(
+            d_model=512,
             name="zoology.mixers.attention.MHA",
-            # name="zoology.mixers.sb_attention.MHA",
             n_layers=2,
-            max_position_embeddings=256,
+            max_position_embeddings=input_seq_len,
             kwargs={"dropout": 0.1, "num_heads": 1}
         )
     ),

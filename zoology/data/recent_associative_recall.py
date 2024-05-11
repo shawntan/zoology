@@ -163,18 +163,15 @@ def _mqar(
     def process_sequence(seq):
         out = np.full((seq.shape[0],), -100, dtype=np.int64)
         state = {}
-        times = {}
         curr_key = None
         for i in range(seq.shape[0]):
             if seq[i] in key_choices:
                 curr_key = seq[i]
                 if curr_key in state:
-                    times[curr_key] = times.get(curr_key, 0) + 1
                     out[i] = state[curr_key]
             elif curr_key is not None:
                 state[curr_key] = seq[i]
                 curr_key = None
-        print(times)
         return out
     labels = torch.tensor(
         np.apply_along_axis(process_sequence, axis=1, arr=inputs))
