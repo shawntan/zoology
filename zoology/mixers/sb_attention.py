@@ -33,13 +33,16 @@ class StickbreakingFromLogits(torch.autograd.Function):
     @staticmethod
     @torch.jit.script
     def backward_scriptable(
-            grad_out: torch.Tensor,
+            dA: torch.Tensor,
+            # grad_out: torch.Tensor,
             att: torch.Tensor, zero_mask: torch.Tensor, log_betas: torch.Tensor,
             cum_weight: torch.Tensor):
-        c_grad_out = grad_out * att
-        cum_grad = F.linear(c_grad_out, cum_weight)
-        cum_grad.add_(c_grad_out)
-        logit_grad = c_grad_out - torch.exp(log_betas) * cum_grad
+        dlogA = att * dA
+        logit_grad = dlogA - torch.exp(log_betas) * (dlogA + F.linear(dlogA, cum_weight))
+
+        # att_dA = att * dA
+        # beta = torch.exp(log_betas)
+        # logit_grad = (1 - beta) * att_dA - beta * F.linear(att_dA, cum_weight)
         if zero_mask is not None:
             logit_grad.masked_fill_(zero_mask, 0.)
         return logit_grad
@@ -63,9 +66,6 @@ def stickbreaking(q, k, v, mask, cum_weight) -> torch.Tensor:
     # print(att[..., :8, :8])
     return att @ v, 1 - att.sum(-1)
 
-
-
-
 class SelfAttention(nn.Module):
     def __init__(self, attention_dropout=0.0):
         super().__init__()
@@ -81,10 +81,9 @@ class SelfAttention(nn.Module):
         seqlen = qkv.shape[1]
         q, k, v = qkv.unbind(dim=2)
         softmax_scale = 1.5 / math.sqrt(q.shape[-1])
-        scores = torch.einsum("bthd,bshd->bhts", q, k)
-        scores *= softmax_scale
+        scores = softmax_scale * torch.einsum("bthd,bshd->bhts", q, k)
         cumweight = torch.ones(seqlen, seqlen).tril(-1).to(q)
-        mask = torch.ones(seqlen, seqlen).triu(0).cuda().bool()
+        mask = torch.ones(seqlen, seqlen, dtype=torch.bool, device=q.device).triu(0)
         attention = StickbreakingFromLogits.apply(scores, mask, cumweight)
         rem = 1 - attention.sum(-1)
         attention_drop = F.dropout(attention, self.dropout_p if self.training else 0.0)
@@ -114,9 +113,7 @@ class MHA(nn.Module):
             self.d_model % num_heads == 0
         ), "self.kdim must be divisible by num_heads"
         self.head_dim = self.d_model // num_heads
-        self.Wqkv = nn.Linear(
-            d_model, 3 * d_model, bias=bias
-        )
+        self.Wqkv = nn.Linear(d_model, 3 * d_model, bias=bias)
         self.inner_attn = SelfAttention(attention_dropout=dropout)
         self.out_proj = nn.Linear(d_model, d_model)
 

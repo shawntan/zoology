@@ -1,5 +1,5 @@
 import numpy as np
-from zoology.config import TrainConfig, ModelConfig, DataConfig, LoggerConfig
+from zoology.config import TrainConfig, ModelConfig, DataConfig, LoggerConfig, ModuleConfig
 
 VOCAB_SIZE = 8_192
 input_seq_len = 512
@@ -25,7 +25,7 @@ MIXERS = {
 
 
 configs = []
-for num_kv_pairs in [8, 16, 64, 128]:
+for num_kv_pairs in [128]:
     data = DataConfig(
         num_train_examples=100_000,
         num_test_examples=3_000,
@@ -34,31 +34,34 @@ for num_kv_pairs in [8, 16, 64, 128]:
         batch_size=batch_size,
         cache_dir="/workspace/shawntan/out/zoology_baselines",
         builder={
-            "name": "zoology.data.associative_recall.multiquery_ar",
+            "name": 'zoology.data.recent_associative_recall.multiquery_ar',
+            # "name": "zoology.data.associative_recall.multiquery_ar",
             "kwargs": {
                 "num_kv_pairs": num_kv_pairs,
-                "train_power_a": 0.01,
-                "test_power_a": 0.01,
-                "random_non_queries": False
+                # "train_power_a": 0.01,
+                # "test_power_a": 0.01,
+                # "random_non_queries": False
             }
         }
     )
-    for d_model in [256, 512]:
+    for d_model in [256]:
+        # for lr in  [3e-4]:
         for lr in  np.logspace(-4, -2, 4):
             for sequence_mixer in ["sb_attention", "attention"]:
                 model = ModelConfig(
                     d_model=d_model,
                     n_layers=2,
                     block_type=block_type,
-                    max_position_embeddings=input_seq_len if sequence_mixer == "attention" else 0,
+                    max_position_embeddings=input_seq_len,
                     vocab_size=VOCAB_SIZE,
                     sequence_mixer=MIXERS[sequence_mixer],
-                    state_mixer=dict(name="torch.nn.Identity", kwargs={})
+                    state_mixer=ModuleConfig(name='zoology.mixers.mlp.MLP', kwargs={'hidden_mult': 4}),
                 )
                 config = TrainConfig(
                     model=model,
                     data=data,
                     learning_rate=lr,
+                    weight_decay=0.1,
                     max_epochs=64,
                     run_id=f"{sequence_mixer}-seqlen{input_seq_len}-kv{num_kv_pairs}-dmodel{d_model}-lr{lr}",
                     logger=LoggerConfig(project_name="repeated_ar", entity="shawntan")
