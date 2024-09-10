@@ -1,8 +1,10 @@
 import numpy as np
 from zoology.config import TrainConfig, ModelConfig, DataConfig, LoggerConfig, ModuleConfig
 
-VOCAB_SIZE = 8_192
-input_seq_len = 512
+# VOCAB_SIZE = 8192
+VOCAB_SIZE = 65
+# input_seq_len = 768
+input_seq_len = 64
 batch_size = 256
 block_type = "TransformerBlock"
 
@@ -25,7 +27,7 @@ MIXERS = {
 
 
 configs = []
-for num_kv_pairs in [128]:
+for num_kv_pairs in [16]:
     data = DataConfig(
         num_train_examples=100_000,
         num_test_examples=3_000,
@@ -44,9 +46,10 @@ for num_kv_pairs in [128]:
             }
         }
     )
-    for d_model in [256]:
-        # for lr in  [3e-4]:
-        for lr in  np.logspace(-4, -2, 4):
+    # for d_model in [256]:
+    for d_model in [100]:
+        # for lr in  np.logspace(-4, -2, 4):
+        for lr in  [3e-4]:
             for sequence_mixer in ["sb_attention", "attention"]:
                 model = ModelConfig(
                     d_model=d_model,

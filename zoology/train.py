@@ -31,6 +31,7 @@ class Trainer:
         early_stopping_threshold: float = None,
         device: Union[str, int] = "cuda",
         logger: WandbLogger = None,
+        run_id = None
     ):
         self.model = model
         self.train_dataloader = train_dataloader
@@ -43,6 +44,7 @@ class Trainer:
         self.early_stopping_threshold = early_stopping_threshold
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.run_id = run_id
 
     def train_epoch(self, epoch_idx: int):
         self.model.train()
@@ -87,6 +89,11 @@ class Trainer:
                     "epoch": epoch_idx,
                 }
             )
+        torch.save({
+            "inputs": inputs,
+            "targets": targets,
+            "model": self.model
+        }, '%s.pt' % self.run_id)
 
     def test(self, epoch_idx: int):
         self.model.eval()
@@ -174,6 +181,7 @@ def train(config: TrainConfig):
 
     task = Trainer(
         model=model,
+        run_id=config.run_id,
         train_dataloader=train_dataloader,
         test_dataloader=test_dataloader,
         max_epochs=config.max_epochs,
@@ -184,6 +192,7 @@ def train(config: TrainConfig):
         device="cuda" if torch.cuda.is_available() else "cpu",
         logger=logger,
     )
+
     task.fit()
     logger.finish()
 

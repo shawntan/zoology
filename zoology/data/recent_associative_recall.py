@@ -79,6 +79,7 @@ def multiquery_ar(
         num_kv_pairs=num_kv_pairs,
         random_non_queries=random_non_queries
     )
+
     test_inputs, test_labels = _mqar(
         vocab_size=vocab_size,
         num_examples=num_test_examples,
