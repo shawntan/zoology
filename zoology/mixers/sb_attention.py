@@ -70,6 +70,7 @@ class SelfAttention(nn.Module):
     def __init__(self, attention_dropout=0.0):
         super().__init__()
         self.dropout_p = attention_dropout
+        self.attn_holder = None
 
     def forward(self, qkv):
         """Implements the multihead softmax attention.
@@ -85,6 +86,7 @@ class SelfAttention(nn.Module):
         cumweight = torch.ones(seqlen, seqlen).tril(-1).to(q)
         mask = torch.ones(seqlen, seqlen, dtype=torch.bool, device=q.device).triu(0)
         attention = StickbreakingFromLogits.apply(scores, mask, cumweight)
+        self.attn_holder = attention
         rem = 1 - attention.sum(-1)
         attention_drop = F.dropout(attention, self.dropout_p if self.training else 0.0)
         output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
