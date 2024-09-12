@@ -50,7 +50,7 @@ for num_kv_pairs in [16]:
     for d_model in [100]:
         # for lr in  np.logspace(-4, -2, 4):
         for lr in  [3e-4]:
-            for sequence_mixer in ["sb_attention", "attention"]:
+            for sequence_mixer in [ "sb_attention", "attention"]:
                 model = ModelConfig(
                     d_model=d_model,
                     n_layers=2,
@@ -64,9 +64,10 @@ for num_kv_pairs in [16]:
                     model=model,
                     data=data,
                     learning_rate=lr,
-                    weight_decay=0.1,
-                    max_epochs=64,
+                    weight_decay=1e-6,
+                    max_epochs=128,
                     run_id=f"{sequence_mixer}-seqlen{input_seq_len}-kv{num_kv_pairs}-dmodel{d_model}-lr{lr}",
-                    logger=LoggerConfig(project_name="repeated_ar", entity="shawntan")
+                    logger=LoggerConfig(project_name="repeated_ar", entity="shawntan"),
+                    early_stopping_threshold=0.999,
                 )
                 configs.append(config)

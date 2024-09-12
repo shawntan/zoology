@@ -3,12 +3,14 @@ from torch import nn
 import torch.nn.functional as F
 from einops import rearrange
 import math
+from .rope import RotaryEmbedding
 
 class SelfAttention(nn.Module):
-    def __init__(self, attention_dropout=0.0):
+    def __init__(self, dim, attention_dropout=0.0):
         super().__init__()
         self.dropout_p = attention_dropout
         self.attn_holder = None
+        self.rotary_emb = RotaryEmbedding(dim=dim)
 
     def forward(self, qkv):
         """Implements the multihead softmax attention.
@@ -19,6 +21,9 @@ class SelfAttention(nn.Module):
         """
         seqlen = qkv.shape[1]
         q, k, v = qkv.unbind(dim=2)
+        q = self.rotary_emb.rotate_queries_or_keys(q)
+        k = self.rotary_emb.rotate_queries_or_keys(k)
+
         softmax_scale = 1.0 / math.sqrt(q.shape[-1])
         scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
         causal_mask = torch.triu(
@@ -53,7 +58,7 @@ class MHA(nn.Module):
         self.Wqkv = nn.Linear(
             d_model, 3 * d_model, bias=bias
         )
-        self.inner_attn = SelfAttention(attention_dropout=dropout)
+        self.inner_attn = SelfAttention(dim=self.head_dim, attention_dropout=dropout)
         self.out_proj = nn.Linear(d_model, d_model)
 
     def forward(self, x: torch.Tensor):
