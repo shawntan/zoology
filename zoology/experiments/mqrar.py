@@ -64,7 +64,7 @@ for num_kv_pairs in [16]:
                     model=model,
                     data=data,
                     learning_rate=lr,
-                    weight_decay=1e-3,
+                    weight_decay=1e-6,
                     max_epochs=50,
                     run_id=f"{sequence_mixer}-seqlen{input_seq_len}-kv{num_kv_pairs}-dmodel{d_model}-lr{lr}",
                     logger=LoggerConfig(project_name="repeated_ar", entity="shawntan"),
