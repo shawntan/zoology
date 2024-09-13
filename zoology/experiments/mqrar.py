@@ -47,7 +47,7 @@ for num_kv_pairs in [16]:
         }
     )
     # for d_model in [256]:
-    for d_model in [100]:
+    for d_model in [64]:
         # for lr in  np.logspace(-4, -2, 4):
         for lr in  [3e-4]:
             for sequence_mixer in [ "sb_attention", "attention"]:
